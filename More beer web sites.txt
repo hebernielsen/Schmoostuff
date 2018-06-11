@@ -1,0 +1,37 @@
+Web sites I found on June 9, that have some relevence to our project. With short comments.
+
+https://github.com/aedobbyn/beer-data-science/blob/master/compile/compile.md
+  - Highly detailed and complete analysis of 63,000 beers. R code included, complex. IBU values for most beers.
+
+https://paulvanderlaken.com/2017/08/21/beer-in-hand-data-science/
+  - Summary of above data analysis, showing 4 valuable graphs. No code (that is in above). Links to other graphs.
+
+http://rikunert.com/guide_to_beer
+  - Has the impressive 3D rotating graph Nick admired last night, plus some other good figure ideas. Gives the code. Uses a Rating data base  to correlate with IBU, ABV
+
+http://www.jeannicholashould.com/profiling-a-dataset-of-craft-beers.html
+  - Part two of the Jean Nicholas site regarding finding beer data that I sent earlier. This is the actual report of analysis of the data found. Still all in Python.
+
+https://rstudio-pubs-static.s3.amazonaws.com/243603_c3fb26789ae54958ba6fa902207faddb.html
+Very similar to our project, but not quite the same questions answered. All in R. Write up of project, using RMarkdown. Nice report but we can do better. Useful code. Can also use as guide for creating our report
+
+https://rstudio-pubs-static.s3.amazonaws.com/287872_b74e42f82c10415b95f955fc523f4a58.html
+  - Our project, done last June by a SMU Data Science student. RMarkdown report. Nice, but we can do better. Useful code. Can also use as guide for creating our report
+
+https://github.com/davestroud/BeerStudy
+  - Another SMU Data Science writeup from last year. RMarkdown report. Nice, but we can do better. Useful code. Can also use as guide for creating our report
+
+https://data.world/too-root/openbeerdb
+  - Data bases of beers, breweries, and breweries_geocode. If we want to do locality. Nearly 6,000 rows. Download links to the separate data bases. (THE NEXT TWO LINKS ARE ALSO ASSOCIATED WITH THESE DATA).
+
+https://data.world/too-root/openbeerdb/workspace/file?filename=beers.csv
+  - The screen printouts of the data  from the /too-root/openbeerdb, also links their data set summary and data dictionary (codebook).
+
+https://data.world/too-root/openbeerdb/workspace/file?filename=beers.csv
+  - Report from recent Hackathon in Houston that used the too-root/openbeerdb data base. Their purpose superficially similar to ours: "Howdy, folks! I'm starting to do some data and policy analysis work around state beer laws, with the hopes of putting together something substantive to support the Texas Craft Brewers Guild as they ramp up to push for beer law reform in the 2019 Texas Legislative Session. The exact end-product is still TBD---maybe a policy playbook, compilation of interviews with key players in beer policy around the country, and/or quantitative analysis of state-by-state laws vs. their economic impact." There is more; scanning through site and links might be worth the time to see what analyses were done and how. 
+
+https://bryandaetz.shinyapps.io/CraftBeersShiny/
+  -   Interactive graph I mentioned last night. Cities, beers, dots sized by city population (I think).. Second graph of IBU and ABV scatterplot linked to a map of US locations with making different styles of beer (choose from 8 American styles). These graphs are associated with his writeup that we already have a link for (https://www.inertia7.com/projects/62)
+
+http://www.efficientdrinker.com/beer/complete-calories-abv.html
+  - I may have already sent you this one. Just making sure I got them all. This has 265 beers and their alcohol content, plus a number called "Efficiency", which is a calculation of the percentage of calories in the beer that come from alcohol. I think this data set is only useful if we need an ABV number.
