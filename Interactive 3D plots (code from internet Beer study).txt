@@ -1,0 +1,267 @@
+
+
+
+
+
+
+Interactive 3D scatter plot with plotly in R
+
+Start off by loading plotly and the data from my github account. I used plotly version 4.5.6 for two reasons: 1) it shows dots in RStudio, 2) the resulting files are smaller. You can get that version by calling
+ devtools::install_version("plotly", version = "4.5.6", repos = "http://cran.us.r-project.org").
+
+
+library(plotly)#version = "4.5.6"
+
+> load(url("https://github.com/rikunert/beer_rating/raw/master/UT_dat_2017-05-29.RData"))
+UT_dat$ALL_rating = with(UT_dat, (UT_rating*UT_raters + BA_rating*BA_raters)/(UT_raters + BA_raters))#overall rating
+UT_dat$ALL_raters = with(UT_dat, UT_raters + BA_raters)#total number of raters
+int_dat = UT_dat[complete.cases(UT_dat[c('UT_beer_name', 'UT_brewery', 'UT_ABV', 'UT_IBU', 'ALL_rating', 'ALL_raters')]),]
+
+
+Having loaded the data we have got everything in place for a 3D scatter plot. However, I want to include a surface of a LOESS solution in the same plot. So, let’s prepare that by generating a LOESS model m and using the predict() function to get the predicted ratings according to this model.
+
+
+> m = loess(ALL_rating ~ UT_ABV * UT_IBU, data = int_dat, weights = ALL_raters)
+x_marginal = seq(min(int_dat$UT_ABV), xmax, length = interp_dens)
+y_marginal = seq(min(int_dat$UT_IBU), ymax, length = interp_dens)
+data.fit <-  expand.grid(list(UT_ABV = x_marginal, UT_IBU = y_marginal))
+pred_interp = predict(m, newdata = data.fit)#interpolated ratings 
+
+
+Plotly is smart enough to generate the hover text from the input data frame for scatter plots. However, the hover text for surface plots needs to be a separate variable. Is this confusing? Yes.
+
+> #hover text for surface plot (LOESS model)
+hover <- with(data.frame(x = rep(x_marginal, interp_dens),
+                         y = rep(y_marginal, each = interp_dens),
+                         p = as.vector(pred_interp)),
+              paste('Modeled beer (LOESS)', '<br>',
+                    "Predicted rating: ", round(p, digits = 2), "stars", '<br>',
+                    "Alcohol content: ", round(x, digits = 2), '%', '<br>',
+                    'Bitterness: ', round(y, digits = 2), 'IBU'))
+hover_m = matrix(hover, nrow = interp_dens, ncol = interp_dens, byrow = T)
+
+
+Now, we finally have everything in place for the plotly call.
+
+p <- plot_ly()
+
+We first generate the scatter plot layer using add_markers().
+
+p <- p %>%
+  add_markers(data = int_dat, x = ~UT_ABV, y = ~UT_IBU, z = ~ALL_rating, size = ~ALL_raters,
+             marker = list(symbol = 'circle', sizemode = 'area',
+                           color = ~ALL_rating, colorscale = c('#708090', '#683531'), showscale = F,
+                           zmin = 2, zmax = 5),
+             sizes = c(50, 1000), opacity = 1,
+             name = 'Beers',
+             hoverinfo = 'text',
+             text = ~paste('Actual beer',
+                           '<br>Name: ', UT_beer_name,
+                           '<br>Brewery: ', UT_brewery,
+                           '<br>Type: ', UT_sub_style,
+                           '<br>user rating: ', ALL_rating,
+                           '<br>Untappd raters: ', ALL_raters,
+                           '<br>Alcohol content: ', UT_ABV, '%',
+                           '<br>Bitterness: ', UT_IBU, 'IBU'))
+
+
+This is followed by the surface layer using add_surface(). Beware, plotly expects the x-values on the columns of the matrix of predicted ratings. Notice the use of t(). Confusing? Yes, it is.
+
+p <- p %>%
+  add_surface(x = x_marginal, y = y_marginal,
+              z = t(pred_interp),#add_surface() expects the x-values on the columns and the y-values on the rows (very confusing, I know)
+              opacity = 0.7,
+              name = 'LOESS model',
+              hoverinfo = 'text',
+              text = hover_m,
+              showscale = F,
+              colorscale = c('#708090', '#683531'),
+              cmin = 2, cmax = 5)
+
+Finally, we use layout() for making the chart pretty.
+
+p <- p %>%
+  layout(title = 'How bitterness and alcohol make good beer',
+         scene = list(xaxis = list(title = '% Alcohol',
+                                   gridcolor = 'rgb(255, 255, 255)',#white
+                                   range = c(0, xmax)),
+                      yaxis = list(title = 'Bitterness',
+                                   gridcolor = 'rgb(255, 255, 255)',
+                                   range = c(0, ymax)),
+                      zaxis = list(title = 'Rating',
+                                   gridcolor = 'rgb(255, 255, 255)',
+                                   range = c(1, 5))),
+         annotations = list(list(x = 0, y = 0,#bottom left corner of frame
+                                 text = '<a href="https://twitter.com/rikunert">@rikunert</a>',
+                                 xref = 'paper', yref = 'paper',
+                                 xanchor = 'left',#left aligned
+                                 showarrow = F),
+                            list(x = 1, y = 0,#bottom right corner of frame
+                                 text = 'Source: <a href="http://untappd.com">untappd.com</a> <br>and <a href="http://beeradvocate.com">beeradvocate.com</a>',
+                                 xref = 'paper', yref = 'paper',
+                                 xanchor = 'right',#right aligned
+                                 showarrow = F)))
+
+We push the result to the plotly website. Don’t forget to set up your individual plotly API credentials (https://plot.ly/r/getting-started). The resulting plot is here.
+
+plotly_POST(p, filename = "ABV_IBU_ratings")
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+#Interactive choropleth map with plotly in R
+
+Just like above, we start off by loading plotly and the data.
+
+> library(plotly)#version = "4.5.6"
+load(url("https://github.com/rikunert/beer_rating/raw/master/UT_dat_2017-05-29.RData"))
+UT_dat$ALL_rating = with(UT_dat, (UT_rating*UT_raters + BA_rating*BA_raters)/(UT_raters + BA_raters))#overall rating
+UT_dat$ALL_raters = with(UT_dat, UT_raters + BA_raters)#total number of raters
+
+We need to aggregate the data by country. I could not find an authoritative list of country names and country codes. Instead, what I found was a working example. So, I just used that. We shall see later that the country codes of the Koreas are mixed up in this file. I hope that whoever uses this file does not care about the Korean peninsula.
+
+ex <- read.csv('https://raw.githubusercontent.com/plotly/datasets/master/2014_world_gdp_with_codes.csv')
+countries = ex$COUNTRY
+
+We aggregate the data in a simple for-loop. Notice how untappd splits the UK into its nations while the map does not. Also, we fix the Koreas problem and a few other countries. Matching country names was simply done with a regular expression (grep()).
+
+map_dat = data.frame(country = ex$COUNTRY,
+                     code = ex$CODE,
+                     rating = rep(NaN, length(ex$COUNTRY)),
+                     raters = rep(NaN, length(ex$COUNTRY)),
+                     beers = rep(NaN, length(ex$COUNTRY)),
+                     breweries = rep(NaN, length(ex$COUNTRY)),
+                     best_beer = rep(NaN, length(ex$COUNTRY)),
+                     best_brewery = rep(NaN, length(ex$COUNTRY)))
+
+counter = 0
+for(c in countries){#for each country in the world
+  counter = counter + 1
+  
+  if(c == 'Korea, South') {
+    c = 'South Korea' 
+    map_dat[counter, 'code'] = 'KOR'}#curiously, the country codes of the Koreas were swapped
+  if(c == 'Niger') c = ' Niger'#no Niger beers in data base, avoid confusion with Nigeria
+  if(c == 'Korea, North') map_dat[counter, 'code'] = 'PRK'#curiously, the country codes of the Koreas were swapped
+  if(c == 'Bahamas, The') c = 'Bahamas'
+  if(c == 'United Kingdom') c = 'England|Scotland|Wales'
+  
+  map_dat[counter, 'rating_beermean'] = mean(UT_dat[grep(c, UT_dat$UT_loc),'ALL_rating'], na.rm = T)
+  map_dat[counter, 'rating'] = weighted.mean(UT_dat[grep(c, UT_dat$UT_loc),'ALL_rating'], UT_dat[grep(c, UT_dat$UT_loc),'ALL_raters'], na.rm = T)
+  map_dat[counter, 'raters'] = sum(UT_dat[grep(c, UT_dat$UT_loc),'ALL_raters'], na.rm = T)
+  map_dat[counter, 'beers'] = length(unique(UT_dat[grep(c, UT_dat$UT_loc),'UT_beer_name']))
+  map_dat[counter, 'breweries'] = length(unique(UT_dat[grep(c, UT_dat$UT_loc),'UT_brewery']))
+}
+
+map_dat = map_dat[!is.na(map_dat[,'rating']),]
+
+The hover text for choropleth maps in plotly works very similar to the surface plot. So, prepare a variable within map_dat which holds the hover text.
+
+#hover text
+map_dat$hover <- with(map_dat, paste("Country: ", country, '<br>',
+                                     "Mean rating: ", round(rating, digits = 2), "stars", '<br>',
+                                     "Raters: ", raters, "<br>",
+                                     "Beers: ", beers, "<br>",
+                                     "Breweries: ", breweries))
+
+Finally, we are ready for the plotly calls. The map projection options are stored in g and later used in layout().
+
+g <- list(
+  showframe = F,
+  showcoastlines = T,
+  projection = list(type = 'orthographic'))
+
+p <- plot_geo(map_dat) %>%
+  add_trace(
+    z = ~rating, color = ~rating, colors = c('#708090', '#d30f00'),
+    text = ~hover, locations = ~code,
+    marker = list(line = list(color = toRGB("grey"), width = 0.5))#light grey boundaries
+  ) %>%
+  colorbar(title = 'Rating', ticksuffix = ' stars') %>%
+  layout(
+    title = 'Which country produces the best beers in the world?',
+    geo = g,
+    hoverinfo = 'text',
+    annotations = list(list(x = 0, y = 0,
+                            text = '<a href="https://twitter.com/rikunert">@rikunert</a>',
+                            xref = 'paper',
+                            yref = 'paper',
+                            xanchor = 'left',
+                            showarrow = F),
+                       list(x = 1, y = 0,
+                            text = 'Source: <a href="http://untappd.com">untappd.com</a> <br>and <a href="http://beeradvocate.com">beeradvocate.com</a>',
+                            xref = 'paper',
+                            yref = 'paper',
+                            xanchor = 'right',
+                            showarrow = F)))
+
+Push the result to plotly. Again, don’t forget to set up your individual plotly API credentials (https://plot.ly/r/getting-started). The resulting figure is here.
+
+plotly_POST(p, filename = "globe_beer_rating")
+
+Interactive 2D scatter plot with plotly in R
+
+Just like above, we load plotly and the data. I do not believe that the precise version of plotly makes much of a difference here as long as it is in the 4.x family.
+
+library(plotly)
+load(url("https://github.com/rikunert/beer_rating/raw/master/UT_dat_2017-05-29.RData"))
+UT_dat$ALL_rating = with(UT_dat, (UT_rating*UT_raters + BA_rating*BA_raters)/(UT_raters + BA_raters))#overall rating
+UT_dat$ALL_raters = with(UT_dat, UT_raters + BA_raters)#total number of raters
+int_dat = UT_dat[complete.cases(UT_dat[c('UT_beer_name', 'ALL_rating', 'ALL_raters')]),]
+
+No preparation is necessary. We can jump straight into the plotly calls. Neat, right? We start off by generating a plotly object using plot_ly() and adding markers of a 2D scatter plot using add_markers(). The code should otherwise be self-explanatory.
+
+p <- plot_ly() %>%
+  add_markers(data = int_dat, x = ~BA_rating, y = ~UT_rating, size = ~ALL_raters,
+              marker = list(symbol = 'circle', sizemode = 'area',
+                            color = ~ALL_rating, colorscale = c('#708090', '#683531'), showscale = F,
+                            cmin = 2, cmax = 5),
+              sizes = c(50, 1000), opacity = 1,
+              name = 'Beers',
+              hoverinfo = 'text',
+              text = ~paste('Beer: ', UT_beer_name,
+                            '<br>beeradvocate rating: ', BA_rating, ' stars',
+                            '<br>beeradvocate raters: ', BA_raters,
+                            '<br>untappd rating: ', UT_rating, ' stars',
+                            '<br>untappd raters: ', UT_raters))
+
+We add an ideal line visualising where ratings should lie for a perfect match.
+
+p <- p %>%
+  add_trace(x = c(1, 5), y = c(1, 5),
+            mode = 'lines')
+
+Finally, let’s make the plot pretty. Notice how the 3D scatter plot embedded the axis titles within a scene argument. For 2D scatter plots, this is done directly in layout. Is this confusing? Yes. Otherwise, you might notice the extra annotation within the plot exaplaining what the line means.
+
+p <- p %>%
+layout(title = 'Beer ratings largely agree across websites',
+         xaxis = list(title = 'beeradvocate rating',
+                                   gridcolor = 'rgb(255, 255, 255)',#white
+                                   range = c(1, 5)),
+         yaxis = list(title = 'untappd rating',
+                                   gridcolor = 'rgb(255, 255, 255)',
+                                   range = c(1, 5)),
+         showlegend = FALSE,
+         annotations = list(
+           list(x = 1.8, y = 1.8,#bottom left corner of frame
+                text = 'Ideal line:<br>untappd rating<br>=<br>beeradvocate rating',
+                xanchor = 'left',#left aligned
+                showarrow = T,
+                ax = 100, ay = 40),
+           list(x = 0, y = 0,#bottom left corner of frame
+                                 text = '<a href="https://twitter.com/rikunert">@rikunert</a>',
+                                 xref = 'paper', yref = 'paper',
+                                 xanchor = 'left',#left aligned
+                                 showarrow = F),
+           list(x = 1, y = 0,#bottom right corner of frame
+                                 text = 'Source: <a href="http://untappd.com">untappd.com</a> <br>and <a href="http://beeradvocate.com">beeradvocate.com</a>',
+                                 xref = 'paper', yref = 'paper',
+                                 xanchor = 'right',#right aligned
+                                 showarrow = F)))
+
+Push the result to plotly. Again, don’t forget to set up your individual plotly API credentials (https://plot.ly/r/getting-started). The resulting 2D scatter plot is here.
+
+plotly_POST(p, filename = "UT_BA_agreement")
+
+
+
+
