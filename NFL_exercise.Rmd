@@ -1,0 +1,40 @@
+---
+title: "NFL_Attempt"
+author: "Heber Nielsen"
+date: "July 8, 2018"
+output: html_document
+---
+
+```{r}
+
+library (XML)
+nfl <- "http://www.espn.com/nfl/team/stats/_/name/dallas"
+class (nfl)
+str (nfl)
+NflXml <- htmlTreeParse(nfl, useInternalNodes = T)
+class (NflXml)
+NflRootNode <- xmlRoot(NflXml)
+class(NflRootNode)
+names (NflRootNode)
+#WARNING: This next command produces a long screen output of >200 lines. Therefore, I have kept it from running in this Markdown document. However, if you let it run, you will see that it is just the type of un-parsed data we want to parse in order to interrogate for the player names, or whatever.
+#
+#xmlSApply (NflRootNode, xmlValue)
+#
+#I used the following command to try and get the player names (copied from Dr. McGee, with replacement for my data names).
+#
+#players <- xpathSApply (NflXml, "//li(@class='name')", xmlValue)
+#
+#The code inside the "" marks is what she used to take out the delimiters in the output from the xmlSApply function, but looking at the code from <xmlSApply (NflRootNode)> I don't see any of that. And I couldn't identify any other pattern that I came across in the materials I reviewed for xml parsing. So I was stuck there.
+#I tried putting the output from the xmlSApply function into a data set, as follows below, but that didn't give data that could be interrogated. Maybe I should have formatted the data set.
+nfldata <- xmlSApply (NflRootNode, xmlValue)
+dim(nfldata)
+class(nfldata)
+str(nfldata)
+# xmlSApply (nfldata, xmlValue). This produced the following error message: 
+#"No applicable method for 'xmlSApply' applied to an object of class "character""
+#I checked its class to be sure, and it is just "character".
+
+#Good luck. Let me know if you solve it.
+#Heber
+
+```
